@@ -37,7 +37,7 @@ def fetch_queries(muid):
         data = {
             "muid": f"{user_data[0][1]}",
             "name": f"{user_data[0][2]}",
-            "profile_pic": f"{decouple_config("BASE_URL")/{user_data[0][0]}.png}",
+            "profile_pic": f"{decouple_config('BASE_URL')}/{user_data[0][0]}.png",
             "karma": str(user_data[0][4]),
             "github_username": user_data[0][6],
             "org_code": list(set([row[7] for row in user_data if row[7]])),
