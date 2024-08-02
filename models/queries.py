@@ -1,5 +1,6 @@
 from models.connection import DBConnection
 from utils.types import OrgType, RolesType
+from decouple import config as decouple_config
 
 db = DBConnection()
 
@@ -7,9 +8,9 @@ db = DBConnection()
 def fetch_queries(muid):
     query = """
         SELECT
+            user.id,
             user.muid,
             user.full_name,
-            user.profile_pic,
             role.title AS role,
             wallet.karma,
             interest_group.name AS interest_group_name,
@@ -28,26 +29,38 @@ def fetch_queries(muid):
         LEFT JOIN organization ON user_organization_link.org_id = organization.id and org_type = :org_type
         WHERE user.muid = :muid;
     """
-    user_data = db.fetch_all_data(query, params={'muid': muid, 'org_type': OrgType.COLLEGE.value})
+    user_data = db.fetch_all_data(
+        query, params={"muid": muid, "org_type": OrgType.COLLEGE.value}
+    )
 
     if user_data:
         data = {
-            "muid": f"{user_data[0][0]}",
-            "name": f"{user_data[0][1]}",
-            "profile_pic": user_data[0][3],
-            "karma": str(user_data[0][5]),
-            "github_username": user_data[0][7],
-            "org_code": list(set([row[8] for row in user_data if row[8]])),
-            "roles": list(set([row[4] for row in user_data if row[4]])),
-            "ig_name": list(set([row[6] for row in user_data if row[6]])),
-            'org_types': list(set([row[9] for row in user_data if row[9]]))
+            "muid": f"{user_data[0][1]}",
+            "name": f"{user_data[0][2]}",
+            "profile_pic": f"{decouple_config("BASE_URL")/{user_data[0][0]}.png}",
+            "karma": str(user_data[0][4]),
+            "github_username": user_data[0][6],
+            "org_code": list(set([row[7] for row in user_data if row[7]])),
+            "roles": list(set([row[3] for row in user_data if row[3]])),
+            "ig_name": list(set([row[5] for row in user_data if row[5]])),
+            "org_types": list(set([row[8] for row in user_data if row[8]])),
         }
     else:
         return None
 
-    main_role = next((role for role in data["roles"] if
-                      role in [RolesType.STUDENT.value, RolesType.MENTOR.value, RolesType.ENABLER.value]),
-                     RolesType.MULEARNER.value)
+    main_role = next(
+        (
+            role
+            for role in data["roles"]
+            if role
+            in [
+                RolesType.STUDENT.value,
+                RolesType.MENTOR.value,
+                RolesType.ENABLER.value,
+            ]
+        ),
+        RolesType.MULEARNER.value,
+    )
 
     if main_role in [RolesType.MENTOR.value, RolesType.ENABLER.value]:
         rank_query = """
@@ -60,7 +73,7 @@ def fetch_queries(muid):
             ORDER BY wallet.karma DESC;
 
         """
-        params = {'title': main_role}
+        params = {"title": main_role}
     else:
         rank_query = """
             SELECT wallet.karma, user.muid
@@ -76,7 +89,7 @@ def fetch_queries(muid):
             ORDER BY wallet.karma DESC;
 
         """
-        params = {'enabler': RolesType.ENABLER.value, "mentor": RolesType.MENTOR.value}
+        params = {"enabler": RolesType.ENABLER.value, "mentor": RolesType.MENTOR.value}
 
     rank_list = db.fetch_all_data(rank_query, params)
 
