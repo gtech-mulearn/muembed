@@ -38,7 +38,7 @@ def fetch_queries(muid):
             "muid": f"{user_data[0][1]}",
             "name": f"{user_data[0][2]}",
             "profile_pic": f"{decouple_config('BASE_URL')}/{user_data[0][0]}.png",
-            "karma": str(user_data[0][4]),
+            "karma": str(user_data[0][4]) if user_data[0][4] is not None else "0",
             "github_username": user_data[0][6],
             "org_code": list(set([row[7] for row in user_data if row[7]])),
             "roles": list(set([row[3] for row in user_data if row[3]])),
@@ -93,12 +93,18 @@ def fetch_queries(muid):
 
     rank_list = db.fetch_all_data(rank_query, params)
 
+    # Defaults so the card still renders for users absent from the rank list
+    # (e.g. no wallet row), instead of raising KeyError -> 500 downstream.
+    data["main_role"] = main_role
+    data["rank"] = 0
+    data["score"] = 0
+
     count = 0
     for x in rank_list:
         count += 1
         if x[1] == data["muid"]:
             data["rank"] = count
             data["score"] = int(x[0])
-            data["main_role"] = main_role
+            break
 
     return data

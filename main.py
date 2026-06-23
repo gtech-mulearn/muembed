@@ -1,7 +1,7 @@
 from io import BytesIO
 
 import requests
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 from flask import Flask, make_response
 
 from models.queries import fetch_queries
@@ -41,13 +41,14 @@ def get_muid(muid):
         try:
             response = requests.get(image_url)
             response.raise_for_status()
-            avatar = BytesIO(response.content)
-        except requests.RequestException as e:
-            # Use a default image instead
-            image_url = "https://assets.mulearn.org/misc/user.png"
-            avatar = BytesIO(requests.get(image_url).content)
-
-        im = Image.open(avatar)
+            im = Image.open(BytesIO(response.content))
+            im.load()
+        except (requests.RequestException, UnidentifiedImageError, OSError):
+            # The avatar URL may be missing, unreachable, or return a non-image
+            # 200 (e.g. an SPA HTML page) -> fall back to a bundled default
+            # avatar so the card always renders instead of raising a 500.
+            im = Image.open("./assets/images/default_avatar.png")
+            im.load()
 
         if im.size[0] < 725 or im.size[1] < 725:
             pass
