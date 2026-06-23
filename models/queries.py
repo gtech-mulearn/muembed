@@ -92,12 +92,12 @@ def fetch_queries(muid):
         params = {"enabler": RolesType.ENABLER.value, "mentor": RolesType.MENTOR.value}
 
     rank_list = db.fetch_all_data(rank_query, params)
-
     # Defaults so the card still renders for users absent from the rank list
     # (e.g. no wallet row), instead of raising KeyError -> 500 downstream.
     data["main_role"] = main_role
     data["rank"] = 0
     data["score"] = 0
+
 
     count = 0
     for x in rank_list:
