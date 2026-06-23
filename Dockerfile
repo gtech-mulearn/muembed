@@ -1,10 +1,9 @@
-FROM python:3.10-slim-buster
+FROM python:3.10-slim-bookworm
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 RUN pip install gunicorn
 RUN mkdir /var/log/muembed
-RUN apt-get update -y  && apt-get install -y default-libmysqlclient-dev python-dev && apt install build-essential -y
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 COPY . .
