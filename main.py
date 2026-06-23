@@ -1,12 +1,34 @@
+import traceback
 from io import BytesIO
 
 import requests
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
-from flask import Flask, make_response
+from flask import Flask, make_response, request
+from werkzeug.exceptions import HTTPException
 
 from models.queries import fetch_queries
 
 app = Flask(__name__)
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_error(error):
+    # TEMPORARY DEBUG AID: surface the real exception and traceback in the
+    # response body instead of a generic "Internal Server Error", so failures
+    # for specific users can be diagnosed directly on the deployed server
+    # (where DEBUG is off and tracebacks are otherwise hidden).
+    # NOTE: this exposes internal details to callers -- remove this handler,
+    # or gate it behind an env flag, once the root cause is found.
+    if isinstance(error, HTTPException):
+        return error
+    tb = traceback.format_exc()
+    app.logger.error("Unhandled error handling %s:\n%s", request.path, tb)
+    body = (
+        f"Internal error while handling {request.path}\n\n"
+        f"{type(error).__name__}: {error}\n\n"
+        f"{tb}"
+    )
+    return make_response(body, 500, {"Content-Type": "text/plain; charset=utf-8"})
 
 
 # fetch GitHub data
