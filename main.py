@@ -63,14 +63,15 @@ def get_muid(muid):
         try:
             response = requests.get(image_url)
             response.raise_for_status()
-            im = Image.open(BytesIO(response.content))
-            im.load()
+            # Normalise to RGBA: palette ("P") or other modes become "PA"/etc.
+            # after putalpha() and make background.paste() raise
+            # "bad transparency mask". RGBA keeps the circular alpha mask valid.
+            im = Image.open(BytesIO(response.content)).convert("RGBA")
         except (requests.RequestException, UnidentifiedImageError, OSError):
             # The avatar URL may be missing, unreachable, or return a non-image
             # 200 (e.g. an SPA HTML page) -> fall back to a bundled default
             # avatar so the card always renders instead of raising a 500.
-            im = Image.open("./assets/images/default_avatar.png")
-            im.load()
+            im = Image.open("./assets/images/default_avatar.png").convert("RGBA")
 
         if im.size[0] < 725 or im.size[1] < 725:
             pass
